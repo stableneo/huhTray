@@ -1,3 +1,5 @@
+> This project is 100% vibecoded.
+
 # huhTray
 
 A tiny macOS menu-bar app with one job: every second, it has a configurable chance to play a sound. By default it plays a Minecraft villager "huh".
@@ -5,8 +7,11 @@ A tiny macOS menu-bar app with one job: every second, it has a configurable chan
 ## Features
 
 - Lives entirely in the menu bar — no Dock icon, no windows.
+- **Left-click the icon** to open the controls popover; **right-click the icon** to play the sound instantly.
+- **Enable checkbox** — master switch for the automatic per-second playing. When off, the chance section grays out (manual right-click still plays).
 - **Chance slider** — sets how likely the sound is to play on each one-second tick, using `p = 1 / (slider × 100)`. The popover shows the resulting probability per second.
 - **Volume slider** — controls playback volume from 0–100%.
+- **Ultra Mode** — the ultimate villager experience. Tap the yellow flash button, confirm the prompt, and the chance unlocks up to a full 100% every second. Enabling starts the slider at 1%, disabling returns it to 50%. A yellow glow marks the button while it's active.
 - **Debug-only "Try it" button** — plays the sound immediately (only compiled into `DEBUG` builds).
 
 ## Requirements
@@ -18,7 +23,9 @@ A tiny macOS menu-bar app with one job: every second, it has a configurable chan
 
 1. Open `huhTray.xcodeproj` in Xcode.
 2. Select the **huhTray** scheme and press **Run** (⌘R).
-3. The die icon appears on the right side of the menu bar — click it to open the controls.
+3. The die icon appears on the right side of the menu bar — left-click it to open the controls, or right-click to play instantly.
+
+To preview the app exactly as published (without the debug "Try it" button), edit the scheme's Run action and set **Build Configuration** to **Release**.
 
 ## Changing the sound
 
@@ -42,6 +49,9 @@ Mac App Store, the App Sandbox capability is disabled, which avoids the issue. I
 re-enable the sandbox (e.g. for a Mac App Store build), you'll need a corresponding
 entitlement exception.
 
-## License
+## A note on audio "pops"
 
-MIT
+Some Macs emit a faint click when the audio output device powers up or down (e.g. on
+launch/quit, or after Ultra Mode's burst of playback ends). This is a hardware
+transient, not a bug in the app or the audio file — it's the DAC energizing and
+de-energizing, and most audio apps trigger it.

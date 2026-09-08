@@ -15,48 +15,62 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Chance to play each second")
-                .font(.headline)
-
             HStack {
-                Slider(value: $engine.sliderValue, in: 1...100)
-                Text("\(Int(engine.sliderValue))")
-                    .monospacedDigit()
-                    .frame(width: 40, alignment: .trailing)
-            }
+                Toggle("Play villager sounds", isOn: $engine.isEnabled)
+                    .toggleStyle(.checkbox)
 
-            Text(String(format: "≈ %.3f%% every second", engine.probabilityPerSecond * 100))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Spacer()
+
+                Button {
+                    if engine.isUltraEnabled {
+                        engine.disableUltra()
+                    } else {
+                        showUltraConfirmation.toggle()
+                    }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color(red: 1.0, green: 0.74, blue: 0.18))
+                            .overlay(
+                                Circle().stroke(Color.black.opacity(0.12), lineWidth: 0.5)
+                            )
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Color.black.opacity(0.55))
+                    }
+                    .frame(width: 14, height: 14)
+                    .shadow(color: engine.isUltraEnabled ? .yellow : .clear,
+                            radius: engine.isUltraEnabled ? 5 : 0)
+                }
+                .buttonStyle(.plain)
+                .help(engine.isUltraEnabled ? "Turn off Ultra" : "Ultra")
+
+                Button {
+                    Task {
+                        await engine.shutdown()
+                        NSApplication.shared.terminate(nil)
+                    }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color(red: 1.0, green: 0.37, blue: 0.34))
+                            .overlay(
+                                Circle().stroke(Color.black.opacity(0.12), lineWidth: 0.5)
+                            )
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Color.black.opacity(0.55))
+                    }
+                    .frame(width: 14, height: 14)
+                }
+                .buttonStyle(.plain)
+                .help("Quit")
+            }
 
             if engine.isUltraEnabled {
                 Label("ULTRA MODE ON", systemImage: "bolt.fill")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.yellow)
-            }
-
-            Text("Volume")
-                .font(.headline)
-
-            HStack {
-                Image(systemName: "speaker.fill")
-                    .foregroundStyle(.secondary)
-                Slider(value: $engine.volume, in: 0...1)
-                Text("\(Int(engine.volume * 100))")
-                    .monospacedDigit()
-                    .frame(width: 40, alignment: .trailing)
-            }
-
-            Divider()
-
-            if engine.isUltraEnabled {
-                Button(role: .destructive) {
-                    engine.disableUltra()
-                } label: {
-                    Label("Turn off Ultra", systemImage: "bolt.slash.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .controlSize(.large)
             } else if showUltraConfirmation {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top, spacing: 6) {
@@ -80,14 +94,37 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                     }
                 }
-            } else {
-                Button {
-                    showUltraConfirmation = true
-                } label: {
-                    Label("Ultra", systemImage: "bolt.fill")
-                        .frame(maxWidth: .infinity)
+            }
+
+            Divider()
+
+            Group {
+                Text("Chance to play each second")
+                    .font(.headline)
+
+                HStack {
+                    Slider(value: $engine.sliderValue, in: 1...100)
+                    Text("\(Int(engine.sliderValue))")
+                        .monospacedDigit()
+                        .frame(width: 40, alignment: .trailing)
                 }
-                .controlSize(.large)
+
+                Text(String(format: "≈ %.3f%% every second", engine.probabilityPerSecond * 100))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!engine.isEnabled)
+
+            Text("Volume")
+                .font(.headline)
+
+            HStack {
+                Image(systemName: "speaker.fill")
+                    .foregroundStyle(.secondary)
+                Slider(value: $engine.volume, in: 0...1)
+                Text("\(Int(engine.volume * 100))")
+                    .monospacedDigit()
+                    .frame(width: 40, alignment: .trailing)
             }
 
             #if DEBUG
@@ -100,15 +137,6 @@ struct ContentView: View {
             }
             .controlSize(.large)
             #endif
-
-            Divider()
-
-            Button("Quit") {
-                Task {
-                    await engine.shutdown()
-                    NSApplication.shared.terminate(nil)
-                }
-            }
         }
         .padding()
         .frame(width: 240)
@@ -119,6 +147,10 @@ struct ContentView: View {
 @MainActor
 @Observable
 final class SoundEngine {
+    /// Master switch for the automatic per-second playing. When off, the app stays
+    /// quiet on its own (manual triggers like right-click still play).
+    var isEnabled = true
+
     /// Slider value that drives the per-second play chance: `p = 1 / (sliderValue * 100)`.
     var sliderValue: Double = 50
 
@@ -147,6 +179,20 @@ final class SoundEngine {
     func disableUltra() {
         isUltraEnabled = false
         sliderValue = 50
+        fadeOutCurrentSound()
+    }
+
+    /// Fades out and stops a sound that's currently playing, so leaving Ultra Mode
+    /// doesn't let a lingering "huh" finish (and fades to avoid a click).
+    private func fadeOutCurrentSound() {
+        guard let player, player.isPlaying else { return }
+        player.setVolume(0, fadeDuration: 0.08)
+        Task {
+            try? await Task.sleep(for: .milliseconds(90))
+            player.stop()
+            player.currentTime = 0
+            player.volume = Float(volume)
+        }
     }
 
     /// Playback volume for the sound, from 0 (silent) to 1 (full).
@@ -170,6 +216,7 @@ final class SoundEngine {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self else { return }
+                guard self.isEnabled else { continue }
                 if Double.random(in: 0..<1) < self.probabilityPerSecond {
                     self.play()
                 }
