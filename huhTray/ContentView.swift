@@ -11,6 +11,7 @@ import AVFoundation
 
 struct ContentView: View {
     @Bindable var engine: SoundEngine
+    @State private var showUltraConfirmation = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -28,6 +29,12 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if engine.isUltraEnabled {
+                Label("ULTRA MODE ON", systemImage: "bolt.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.yellow)
+            }
+
             Text("Volume")
                 .font(.headline)
 
@@ -38,6 +45,49 @@ struct ContentView: View {
                 Text("\(Int(engine.volume * 100))")
                     .monospacedDigit()
                     .frame(width: 40, alignment: .trailing)
+            }
+
+            Divider()
+
+            if engine.isUltraEnabled {
+                Button(role: .destructive) {
+                    engine.disableUltra()
+                } label: {
+                    Label("Turn off Ultra", systemImage: "bolt.slash.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.large)
+            } else if showUltraConfirmation {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                        Text("You are about to enable the ultimate villager experience. Are you ready?")
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "exclamationmark.triangle.fill")
+                    }
+                    .font(.callout)
+                    .foregroundStyle(.yellow)
+                    HStack {
+                        Button("No", role: .cancel) {
+                            showUltraConfirmation = false
+                        }
+                        .frame(maxWidth: .infinity)
+                        Button("Yes") {
+                            engine.enableUltra()
+                            showUltraConfirmation = false
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            } else {
+                Button {
+                    showUltraConfirmation = true
+                } label: {
+                    Label("Ultra", systemImage: "bolt.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.large)
             }
 
             #if DEBUG
@@ -69,11 +119,31 @@ final class SoundEngine {
     /// Slider value that drives the per-second play chance: `p = 1 / (sliderValue * 100)`.
     var sliderValue: Double = 50
 
+    /// Whether Ultra Mode is enabled — the ultimate villager experience, which lets
+    /// the chance reach a full 100% every second.
+    var isUltraEnabled = false
+
     /// Probability that the sound plays during any given one-second tick (clamped to 0...1).
     var probabilityPerSecond: Double {
+        if isUltraEnabled {
+            // Ultra Mode: the slider maps straight to 0...100% per second.
+            return min(1, sliderValue / 100)
+        }
         let denominator = sliderValue * 100
         guard denominator > 0 else { return 0 }
         return min(1, 1 / denominator)
+    }
+
+    /// Enables Ultra Mode, starting the slider at 1%.
+    func enableUltra() {
+        isUltraEnabled = true
+        sliderValue = 1
+    }
+
+    /// Disables Ultra Mode, returning to the calmer default chances at 50%.
+    func disableUltra() {
+        isUltraEnabled = false
+        sliderValue = 50
     }
 
     /// Playback volume for the sound, from 0 (silent) to 1 (full).
