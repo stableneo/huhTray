@@ -27,6 +27,29 @@ A tiny macOS menu-bar app with one job: every second, it has a configurable chan
 
 To preview the app exactly as published (without the debug "Try it" button), edit the scheme's Run action and set **Build Configuration** to **Release**.
 
+## Installing a downloaded release
+
+The `.dmg` builds attached to GitHub Releases are only ad-hoc signed — they are **not**
+signed with an Apple Developer ID or notarized. So when you first open the app, macOS
+will warn that it's from an unidentified developer and refuse to launch on a double-click.
+
+To install anyway:
+
+1. Open the `.dmg` and drag **huhTray** into your **Applications** folder.
+2. **Right-click** (or Control-click) `huhTray.app` and choose **Open**, then confirm in the dialog. You only need to do this once.
+
+If double-clicking is blocked, use System Settings instead (no Terminal needed):
+
+1. Double-click `huhTray.app` once and dismiss the warning.
+2. Open **System Settings → Privacy & Security** and scroll to the **Security** section.
+3. Next to the message that huhTray was blocked, click **Open Anyway** and authenticate.
+
+As a last resort, you can clear the quarantine flag from Terminal:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/huhTray.app
+```
+
 ## Changing the sound
 
 The app plays a bundled audio file. To use your own:

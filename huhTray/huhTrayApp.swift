@@ -31,7 +31,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "die.face.5", accessibilityDescription: "huhTray")
+            let icon = NSImage(named: "MenuBarIcon")
+            icon?.isTemplate = true
+            icon?.size = NSSize(width: 18, height: 18)
+            button.image = icon
             button.toolTip = "Left-click for controls · Right-click to play"
             button.target = self
             button.action = #selector(statusItemClicked(_:))

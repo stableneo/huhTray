@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 223 227" width="223" height="227">
+  <mask id="gap">
+    <rect width="223" height="227" fill="#fff"/>
+    <rect x="77" y="172" width="68" height="28" fill="#000"/>
+  </mask>
+  <g fill="#fff">
+    <rect x="24" y="23" width="174" height="164" rx="6" fill="none" stroke="#fff" stroke-width="14" mask="url(#gap)"/>
+    <rect x="44" y="59" width="134" height="15"/>
+    <rect x="63" y="87" width="22" height="22" rx="3"/>
+    <rect x="137" y="87" width="22" height="22" rx="3"/>
+    <rect x="85" y="118" width="52" height="91" rx="5"/>
+  </g>
+</svg>
