@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Xcode
+## Build generated
+build/
+DerivedData/
+*.app
+
+## User settings / state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+## Various
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Swift Package Manager
+.build/
+.swiftpm/
+
+## Xcode automatic
+*.xccheckout
+*.xcscheme.bak
