@@ -104,7 +104,10 @@ struct ContentView: View {
             Divider()
 
             Button("Quit") {
-                NSApplication.shared.terminate(nil)
+                Task {
+                    await engine.shutdown()
+                    NSApplication.shared.terminate(nil)
+                }
             }
         }
         .padding()
@@ -174,19 +177,47 @@ final class SoundEngine {
         }
     }
 
+    /// Gracefully tears down audio before the app exits: fades out anything playing,
+    /// releases the player, and lets CoreAudio settle so the device powers down less
+    /// abruptly (reducing the pop on quit).
+    func shutdown() async {
+        tickTask?.cancel()
+        tickTask = nil
+        if let player, player.isPlaying {
+            player.setVolume(0, fadeDuration: 0.05)
+            try? await Task.sleep(for: .milliseconds(60))
+        }
+        player?.stop()
+        player = nil
+        try? await Task.sleep(for: .milliseconds(120))
+    }
+
     /// Plays the sound immediately, ignoring the probability.
     func play() {
+        guard let player = preparedPlayer() else { return }
+        player.volume = Float(volume)
+        player.currentTime = 0
+        player.play()
+    }
+
+    /// Returns a single, reused, pre-prepared player so the audio pipeline stays
+    /// warm — avoiding per-play allocation and mid-playback deallocation clicks.
+    private func preparedPlayer() -> AVAudioPlayer? {
+        if let player {
+            return player
+        }
         guard let url = Bundle.main.url(forResource: Self.resourceName, withExtension: Self.resourceExtension) else {
             print("huhTray: missing \(Self.resourceName).\(Self.resourceExtension) in app bundle")
-            return
+            return nil
         }
         do {
             let player = try AVAudioPlayer(contentsOf: url)
-            player.volume = Float(volume)
+            player.prepareToPlay()
             self.player = player
-            player.play()
+            return player
         } catch {
-            print("huhTray: failed to play audio — \(error.localizedDescription)")
+            print("huhTray: failed to load audio — \(error.localizedDescription)")
+            return nil
         }
     }
 }
