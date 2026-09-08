@@ -36,6 +36,7 @@ jobs:
             -scheme huhTray \
             -configuration Release \
             -derivedDataPath build \
+            MACOSX_DEPLOYMENT_TARGET=26.0 \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_REQUIRED=NO \

@@ -7,6 +7,10 @@ build/
 DerivedData/
 *.app
 
+## Release packaging (produced by CI / local test runs)
+*.dmg
+dmg-staging/
+
 ## User settings / state
 xcuserdata/
 *.xcuserstate
